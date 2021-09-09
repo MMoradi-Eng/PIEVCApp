@@ -8,14 +8,15 @@ import pandas as pd
 from pymongo import MongoClient
 import numpy as np
 import plotly.graph_objects as go
-from pyvis import network as net
 import dash_cytoscape as cyto
 import dash_auth
+import copy
+import random
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Import Data
 client = MongoClient("mongodb+srv://moradim:UofGPIEVC@cluster0.ok7am.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
-DataBase = client["PIEVC"]
+DataBase = client["test"]
 ## Infrastructure Classification
 InfraClassification_db = DataBase.InfraClassification
 ## Project Team
@@ -24,6 +25,7 @@ ProjectTeam_db = DataBase.ProjectTeam
 StudiesOverview_db = DataBase.StudiesOverview
 ## Risk Profile
 RiskProfile_db = DataBase.RiskProfile
+# RiskProfile_df = pd.DataFrame(list(RiskProfile_db.find()))
 ## ClimateDataInfras
 ClimateDataInfras_db = DataBase.ClimateDataInfras
 ClimateDataInfras_df = pd.DataFrame(list(ClimateDataInfras_db.find()))
@@ -49,25 +51,37 @@ ClimateData_df = pd.DataFrame(list(ClimateData_db.find()))
 ## Recommendation
 Recommendation_db = DataBase.Recommendation
 Recommendation_df = pd.DataFrame(list(Recommendation_db.find()))
+InfraClassification_df = pd.DataFrame(list(InfraClassification_db.find()))
+
+# Infrastructure classification sunburst plot
+InfraClassification_df_sb = copy.copy(InfraClassification_df)
+InfraClassification_df_sb.replace(to_replace="NAN", value=np.nan, inplace=True)
+sb = px.sunburst(InfraClassification_df_sb, path=['Infrastructure Layer 1', 'Infrastructure Layer 2', 'Components'],custom_data=['Infrastructure Layer 1', 'Infrastructure Layer 2'])
+sb.update_layout(margin={'l': 0, 'r': 0, 'b': 0, 't': 0},paper_bgcolor='rgba(0,0,0,0)') # , width=1000, height=1000
+sb.update_traces(hovertemplate='<b>Infrastructure Type: %{customdata[0]} <br> Label: %{label}',branchvalues='total', selector=dict(type='sunburst'))
+sb.update_traces(insidetextorientation='radial', selector=dict(type='sunburst'))
+
+FONT_AWESOME = "https://use.fontawesome.com/releases/v5.10.2/css/all.css"
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Start App
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP,FONT_AWESOME])
 
 auth = dash_auth.BasicAuth(
     app,
     {'UofGPIEVC': 'Xj#%:(3:fYfRp(Mz'}
-)
+ )
 
 #-----------------------------------------------------------------------------------------------------------------------
 # App Style
 # styling the sidebar
 SIDEBAR_STYLE = {
+    "overflow": "auto",
     "position": "fixed",
     "top": 0,
     "left": 0,
     "bottom": 0,
-    "width": "20rem",
+    "width": "24rem",
     "padding": "2rem 1rem",
     "background-color": "#DEFFD2",
 }
@@ -80,19 +94,60 @@ CONTENT_STYLE = {
     'display': 'flex'
 }
 
+tab_style_sidebar = {
+    'borderBottom': '1px solid #287F06',
+    'borderTop': '1px solid #287F06',
+    'borderLeft': '1px solid #287F06',
+    'borderRight': '1px solid #287F06',
+    'padding': '6px',
+    'backgroundColor': '#DEFFD2',
+    'font-size': '12px'
+}
+
+tab_selected_style_sidebar = {
+    'borderTop': '1px solid #287F06',
+    'borderBottom': '1px solid #287F06',
+    'backgroundColor': '#4B9072',
+    'color': 'white',
+    'padding': '6px',
+    'font-size': '12px'
+}
+
 sidebar = html.Div(
     [
-        html.H1("PIEVC Reports Assessment", className="display-4"),
+        html.H1("PIEVC Report Analysis Utility", className="display-4"), # UPDATE
         html.Hr(),
-        html.Label("This app reviews and evaluates the vulnerability of Canadian infrastructure to the anticipated effects of climate change. This is conducted through a review of a selection of PIEVC assessments published over the years 2016 to 2021."),
-        html.Img(src=app.get_asset_url('Logo.png')),
+        # UPDATE
+        html.Label(["This utility allows users to explore findings for all PIEVC assessment reports submitted to the PIEVC Program from January 2016 to August 2021. The Utility was designed to increase accessibility of findings in PIEVC Protocol assessment reports available of ",dcc.Link('www.pievc.ca',href='https://pievc.ca')]),
+        html.Img(src=app.get_asset_url('Logo.png'),style={'margin-left':'50px'}),
+
+        html.Div([
+                dcc.Tabs(children=[
+                        dcc.Tab(label='Author',
+                                children=[
+                                    html.Label('The Utility was created by Mohsen Moradi, under the guidance of Prof. Andrew Binns, of the University of Guelph’s School of Engineering, and was funded by the Institute for Catastrophic Loss Reduction',style={'font-size': '12px'}),
+                                ],style=tab_style_sidebar,selected_style=tab_selected_style_sidebar
+                                ),
+                        dcc.Tab(label='Contact Us',
+                                children=[
+                                    html.Label('If you have any questions or comments about this utility, please contact pievc@iclr.org and include "PIEVC Utility" as the subject',style={'font-size': '12px'}),
+                                ],style=tab_style_sidebar,selected_style=tab_selected_style_sidebar
+                                ),
+                        dcc.Tab(label='How to Cite',
+                                children=[
+                                    html.Label('How to cite: Moradi, M., & Binns, A. 2021. PIEVC Report Analysis Utility v1. Toronto/Ottawa: PIEVC Program',style={'font-size': '12px'}),
+                                ],style=tab_style_sidebar,selected_style=tab_selected_style_sidebar
+                                )
+                ],style={'height': '30px'}
+                )
+            ])
     ],
     style=SIDEBAR_STYLE,
 )
 
 drop_opt = [{'label':study_id,'value':study_id} for study_id in pd.DataFrame(list(ProjectTeam_db.find()))['Study'].unique().tolist()]
 drop_Study = dcc.Dropdown(id='drop_Study',clearable=False,searchable=False,options=drop_opt,value=drop_opt[0]['value'],style={'margin': '4px', 'box-shadow': '0px 0px #ebb36a', 'border-color': '#ebb36a'})
-drop_province = dcc.Dropdown(id='drop_province',clearable=False,searchable=False,multi=True,style={'margin': '4px', 'box-shadow': '0px 0px #ebb36a', 'border-color': '#ebb36a'})
+drop_province = dcc.Dropdown(id='opt_province',clearable=False,searchable=False,multi=True,style={'margin': '4px', 'box-shadow': '0px 0px #ebb36a', 'border-color': '#ebb36a'})
 drop_study_multi = dcc.Dropdown(id='opt_infra_province_study',clearable=False,searchable=False,multi=True,style={'margin': '4px', 'box-shadow': '0px 0px #ebb36a', 'border-color': '#ebb36a'})
 drop_study_threshold = dcc.Dropdown(id='opt_study_threshold',clearable=False,searchable=False,style={'margin': '4px', 'box-shadow': '0px 0px #ebb36a', 'border-color': '#ebb36a'})
 drop_study_sunburstRisk1 = dcc.Dropdown(id='opt_study_sunburstRisk1',clearable=False,searchable=False,style={'margin': '4px', 'box-shadow': '0px 0px #ebb36a', 'border-color': '#ebb36a'})
@@ -105,9 +160,29 @@ drop_opt_timehorizon_sunburstRisk1 = [{'label':'Current','value':'Current'},{'la
 drop_timehorizon_sunburstRisk1 = dcc.Dropdown(id='opt_timehorizon_sunburstRisk1',clearable=False,searchable=False,options=drop_opt_timehorizon_sunburstRisk1, value=drop_opt_timehorizon_sunburstRisk1[0]['value'], style={'margin': '4px', 'box-shadow': '0px 0px #ebb36a', 'border-color': '#ebb36a'})
 drop_timehorizon_sunburstRisk2 = dcc.Dropdown(id='opt_timehorizon_sunburstRisk2',clearable=False,searchable=False,options=drop_opt_timehorizon_sunburstRisk1, value=drop_opt_timehorizon_sunburstRisk1[0]['value'], style={'margin': '4px', 'box-shadow': '0px 0px #ebb36a', 'border-color': '#ebb36a'})
 
-drop_opt_infra = [{'label':i,'value':i} for i in pd.DataFrame(list(InfraClassification_db.find()))['Infrastructure'].unique().tolist()]
+drop_opt_infra = [{'label':i,'value':i} for i in InfraClassification_df['Infrastructure Layer 1'].unique().tolist()]
 drop_InfraClass_multi = dcc.Dropdown(id='drop_InfraClass_multi',clearable=False,searchable=False,options=drop_opt_infra,value='Buildings',multi=True,style={'margin': '4px', 'box-shadow': '0px 0px #ebb36a', 'border-color': '#ebb36a'})
-drop_InfraClass_single = dcc.Dropdown(id='drop_InfraClass_single',clearable=False,searchable=False,options=drop_opt_infra,value='Buildings',style={'margin': '4px', 'box-shadow': '0px 0px #ebb36a', 'border-color': '#ebb36a'})
+drop_InfraClass_single = dcc.Dropdown(id='drop_InfraClass_single',clearable=False,searchable=False,options=drop_opt_infra,value='Coastal Infrastructure',style={'margin': '4px', 'box-shadow': '0px 0px #ebb36a', 'border-color': '#ebb36a','margin-right':'-80px'})
+drop_InfraClass_comp_init = InfraClassification_df[InfraClassification_df['Infrastructure Layer 1']=='Coastal Infrastructure']['Infrastructure Layer 2'].unique().tolist()[0]
+drop_InfraClass_comp = dcc.Dropdown(id='opt_InfraClass_comp',clearable=False,searchable=False,value=drop_InfraClass_comp_init,style={'margin': '4px', 'box-shadow': '0px 0px #ebb36a', 'border-color': '#ebb36a','margin-right':'-80px'})
+
+tab_style = {
+    'borderBottom': '1px solid #d3a15f',
+    'borderTop': '1px solid #d3a15f',
+    'borderLeft': '1px solid #d3a15f',
+    'borderRight': '1px solid #d3a15f',
+    'padding': '6px',
+    'fontWeight': 'bold',
+    'backgroundColor': '#F2F2F2'
+}
+
+tab_selected_style = {
+    'borderTop': '1px solid #d3a15f',
+    'borderBottom': '1px solid #d3a15f',
+    'backgroundColor': '#ebb36a',
+    'color': 'white',
+    'padding': '6px'
+}
 
 #-----------------------------------------------------------------------------------------------------------------------
 # App Layout
@@ -116,31 +191,52 @@ app.layout = html.Div([
 
     html.Div([
         html.Div([
-            html.Div([
-                html.H3('PIEVC Engineering Protocol'),
-                html.Hr(),
-                html.P('The PIEVC Protocol provides a structured, rigorous qualitative process to assess the risks and vulnerabilities of individual infrastructures or infrastructure systems to current and future extreme weather events and climate changes.')
-            ],className='box',style={'margin-right': '-0.8rem','margin-left': '-1rem','margin-bottom': '1rem','margin-top': '1rem','padding-left':'15px','padding-right':'15px', 'padding-top':'15px', 'padding-bottom':'15px','backgroundColor':'#111111','border-radius': '15px','background-color': '#F2F2F2'}),
         # <Box 1>: Infrastructure classification sunburst & Description
         html.Div([
             html.Div([
                 html.Div([
-                    html.H3('Infrastructure Classification',style={'padding-left': '15px'}),
+                    html.H3([
+                        'Infrastructure Classification ',
+                        html.I(className="fas fa-info-circle fa-lg", id="target-sb",style={'font-size':'20px'})],style={'padding-left': '15px'}),
+                    dbc.Tooltip("Click on it to know more!", target="target-sb"),
                     html.Hr(style={'margin-right': '6rem','margin-left': '0.8rem'}),
-                    html.Label('Click on it to know more!', style={'font-size': '9px','padding-left': '15px'}),
-                    dcc.Graph(id='fig_sunburst_InfraClass'),
+                    dcc.Graph(figure=sb),
                 ],style={'width':'55%'}),
                 html.Div([
                     html.Div([
                         html.H3('Description of Infrastructure'),
                         html.Hr(style={'margin-right': '2rem'}),
-                        html.P('Choose Infrastructure:'),
-                    ],style={'width':'100%'}),
+                        html.P('Infrastructure:'),
+                    ],style={'width':'100%','margin-bottom':'-15px'}),
                     html.Div([
                         drop_InfraClass_single
-                    ],style={'width':'80%','margin-left': '-0.7rem'}),
+                    ],style={'width':'80%','margin-left': '-0.7rem','margin-bottom':'10px'}),
                     html.Div([
-                        html.Div(id='InfraClass_Description',style={'padding-right':'15px'})
+                        html.P('Component:')
+                    ],style={'margin-bottom':'-15px'}),
+                    html.Div([
+                        drop_InfraClass_comp
+                    ],style={'width':'80%','margin-left': '-0.7rem','margin-bottom':'15px'}),
+                    html.Div([
+                        dcc.Tabs(children=[
+                                dcc.Tab(label='Description',
+                                        children=[
+                                            dcc.Loading(id='DescripTab',color='#4B9072',type="circle")
+                                        ],style=tab_style,selected_style=tab_selected_style
+                                        ),
+                                dcc.Tab(label='Studies',
+                                        children=[
+                                            html.P(['This section provides list of studies that assessed infrastructure selected above. ',html.I(className="fas fa-info-circle fa-lg", id="target-infradescrip",style={'font-size':'15px'})]),
+                                            dbc.Tooltip("Please scroll down to see all studies!", target="target-infradescrip"),
+                                            html.Hr(style={'margin-right': '2rem'}),
+                                            dcc.Loading(id='StudiesTab',color='#4B9072',type="circle"),
+                                            html.Hr(style={'margin-right': '2rem'}),
+                                            html.P('Studies are coded based on the consulting company, year, province, and location as below:',style={'font-size':'12px'}),
+                                            dcc.Markdown('_**Company (Year) (Province) (Location)**_',style={'font-size':'12px'})
+                                        ],style=tab_style,selected_style=tab_selected_style
+                                        )
+                        ],style={'margin-right': '30px','height': '44px'}
+                        )
                     ])
                 ],style={'width':'45%'})
             ],className='row')
@@ -149,12 +245,19 @@ app.layout = html.Div([
         html.Div([
             html.Div([
                 html.H3('Overview Table'),
-                html.Hr(style={'margin-right': '30rem'}),
-                html.P('An overview of PIEVC studies from 2016 to 2021 is shown below.'),
-                html.Label('Scroll down to know more!', style={'font-size': '9px', 'padding-left': '5px'}),
+                html.Hr(),
+                html.P(['An overview of PIEVC studies included in this utility is provided here. ',
+                        html.I(className="fas fa-info-circle fa-lg", id="target-overviewTable",style={'font-size':'15px'})]),
+                dbc.Tooltip("Scroll down in the table to know more!", target="target-overviewTable")
             ]),
             html.Div([
                 dcc.Graph(id='table_Overview')
+            ]),
+            html.Div([
+                dcc.Markdown("***** **AI**:(Airport Infrastructure), **Br**:(Bridges), **Bu**:(Buildings), **CI**:(Coastal Infrastructures), **E**:(Electrical), **M**: (Mechanical), **F**: (Fuel), "
+                             "**PW**:(Portable Water), **RLNBI**:(Recreational Lands and Nature-Based Infrastructure), **RAI**:(Roads & Associated Infrastructure), **SW**:(Stormwater), **WW**:(Wastewater)",style={'font-size':'14px','margin-top':'10px'}),
+                dcc.Markdown('****** This column indicates whether a site visit of the infrastructure(s) or building(s) was conducted as part of the PIEVC Protocol vulnerability assessment',style={'font-size':'14px','margin-top':'-10px'})
+
             ])
         ],className='box',style={'margin-right': '-0.8rem','margin-left': '-1rem','margin-bottom': '1rem','margin-top': '1rem','padding-right':'15px','padding-left':'15px', 'padding-top':'15px', 'padding-bottom':'15px','backgroundColor':'#111111','border-radius': '15px','background-color': '#F2F2F2'}),
         # <Box 3>: Project Team
@@ -162,16 +265,18 @@ app.layout = html.Div([
             html.Div([
                 html.Div([
                     html.Div([
-                        html.H3('Project Team'),
-                        html.Hr(style={'margin-right': '30rem'})
+                        html.H3(['Project Team ',
+                                 html.I(className="fas fa-info-circle fa-lg", id="target-prjTeam",style={'font-size':'20px'})],style={'padding-left': '15px'}),
+                        dbc.Tooltip("Use the dropdown menu to select a study included in the Utility. The project team for the study will then be displayed in the table below", target="target-prjTeam"),
+                        html.Hr()
                     ]),
                     html.Div([
                         html.P('Choose Study:')
                     ]),
                     html.Div([
                         drop_Study
-                    ],style={'width':'40%','margin-left': '-0.6rem','margin-bottom': '0.5rem','margin-top': '-0.3rem'}),
-                    dcc.Graph(id='table_ProjectTeam')
+                    ],style={'width':'75%','margin-left': '-0.6rem','margin-bottom': '0.5rem','margin-top': '-0.3rem'}),
+                    dcc.Loading(dcc.Graph(id='table_ProjectTeam'),color='#4B9072',type="circle")
                 ],style={'width':'63%','margin-right': '1rem','margin-left': '0rem','margin-bottom': '1rem','margin-top': '1rem','padding-right':'15px','padding-left':'15px', 'padding-top':'15px', 'padding-bottom':'15px','backgroundColor':'#111111','border-radius': '15px','background-color': '#F2F2F2'}),
                 html.Div([
                     html.Img(src=app.get_asset_url('PIEVCImg.png'),style={'width': '100%', 'position': 'relative', 'opacity': '80%','margin-top': '1rem'})
@@ -194,31 +299,34 @@ app.layout = html.Div([
             html.Div([
                 html.Div([
                     html.H3("Infrastructure, Location, and Study:"),
-                    html.Hr(style={'margin-right': '5rem'}),
-                    html.P('The results from PIEVC reports can be investigated based on the chosen infrastructure, location, and study')
+                    html.Hr(),
+                    html.P('The results from PIEVC reports can be compared and explored in the "Threshold", "Climate Parameters", and "Risk Analysis" sections. For these investigations, please choose infrastructure, location, and study.')
                 ]),
                 html.Div([
                     html.Div([
-                        html.P('Infrastructure:')
+                        html.P(['Infrastructure: ', html.I(className="fas fa-info-circle fa-lg", id="target-infrasAnalysis",style={'font-size':'15px'})]),
+                        dbc.Tooltip("You can select multiple infrastructures", target="target-infrasAnalysis"),
                     ],style={'margin-bottom':'-1rem'}),
                     html.Div([
-                        drop_InfraClass_multi
+                        dcc.Loading(drop_InfraClass_multi,color='#4B9072',type="circle")
                     ])
                 ]),
                 html.Div([
                     html.Div([
-                        html.P('Location:')
+                        html.P(['Location: ',html.I(className="fas fa-info-circle fa-lg", id="target-locationAnalysis",style={'font-size':'15px'})]),
+                        dbc.Tooltip("You can select multiple locations", target="target-locationAnalysis"),
                     ],style={'margin-bottom':'-1rem'}),
                     html.Div([
-                        drop_province
+                        dcc.Loading(drop_province,color='#4B9072',type="circle")
                     ])
                 ]),
                 html.Div([
                     html.Div([
-                        html.P('Study:')
+                        html.P(['Study: ',html.I(className="fas fa-info-circle fa-lg", id="target-studyAnalysis",style={'font-size':'15px'})]),
+                        dbc.Tooltip("You can select multiple studies", target="target-studyAnalysis"),
                     ],style={'margin-bottom':'-1rem'}),
                     html.Div([
-                        drop_study_multi
+                        dcc.Loading(drop_study_multi,color='#4B9072',type="circle")
                     ])
                 ])
             ],className='box',style={'width':'40%','margin-right': '0rem','margin-left': '0.3rem','margin-bottom': '1rem','margin-top': '1rem','padding-right':'15px','padding-left':'15px', 'padding-top':'15px', 'padding-bottom':'15px','backgroundColor':'#111111','border-radius': '15px','background-color': '#F2F2F2'}),
@@ -226,12 +334,14 @@ app.layout = html.Div([
             html.Div([
                 html.Div([
                     html.H3('Threshold'),
-                    html.Hr(style={'margin-right':'10rem'}),
-                    html.P('Choose study to see the sources used to calculate climate threshold')
+                    html.Hr(),
+                    html.P('Thresholds allow study authors to determine whether or not infrastructure is expected to affected by change in specific climate parameters. This section will allow you to identify how thresholds were determined for the selected studies.'),
+                    html.P(['Choose study to see the sources used to calculate climate threshold. ',html.I(className="fas fa-info-circle fa-lg", id="target-threshold",style={'font-size':'15px'})]),
+                    dbc.Tooltip("you are offered thresholds for studies that were selected based on the criteria selected in the 'Infrastructure, Location, and Study' box ", target="target-threshold"),
                 ]),
                 html.Div([
-                    drop_study_threshold
-                ],style={'width':'50%'}),
+                    dcc.Loading(drop_study_threshold,color='#4B9072',type="circle")
+                ],style={'width':'75%'}),
                 html.Div(id='Threshold_statement')
             ],className='box',style={'width':'57%','margin-right': '0rem','margin-left': '1rem','margin-bottom': '1rem','margin-top': '1rem','padding-right':'15px','padding-left':'15px', 'padding-top':'15px', 'padding-bottom':'15px','backgroundColor':'#111111','border-radius': '15px','background-color': '#F2F2F2'}),
         ],className='row'),
@@ -240,10 +350,13 @@ app.layout = html.Div([
             html.Div([
                 html.H3('Climate Parameters'),
                 html.Hr(style={'width':'30'}),
-                html.P('The common climate parameters among studies, and the climate parameters affect the infrastructures are shown below:')
+                html.P(['This chart allows you to identify parameters that were included in studies selected in the ``Infrastructure, Location and Study'' box (above). Select multiple studies to view shared parameters. ',
+                        html.I(className="fas fa-info-circle fa-lg", id="target-ClimateParam",style={'font-size':'15px'})]),
+                dbc.Tooltip("Drag the circles to get a better view of studies and their parameters ", target="target-ClimateParam"),
             ]),
             html.Div(
-                cyto.Cytoscape(id='NetworkPlot',layout={'name': 'circle'},style={'width': '100%', 'height': '400px'},elements=[],minZoom=0.2,maxZoom=1)
+                dcc.Loading(cyto.Cytoscape(id='NetworkPlot',layout={'name': 'circle'},style={'width': '100%', 'height': '400px'},elements=[],stylesheet=[],minZoom=0.2,maxZoom=1),color='#4B9072',type="circle"),
+
             ),
         ],className='box',style={'margin-right': '0rem','margin-left': '-0.9rem','margin-bottom': '1rem','margin-top': '1rem','padding-right':'15px','padding-left':'15px', 'padding-top':'15px', 'padding-bottom':'15px','backgroundColor':'#111111','border-radius': '15px','background-color': '#F2F2F2'}),
         # <Box > Risk Profile
@@ -252,7 +365,8 @@ app.layout = html.Div([
                 html.Div([
                     html.H3('Risk Analysis 1'),
                     html.Hr(),
-                    html.P('Choose study, location, risk level and time horizon to see the risk profile')
+                    html.P('This section allows you to view specific interactions between infrastructure and climate parameters that were assessed in studies selected above.'),
+                    html.P('Choose study, location, risk level and time horizon to see the risk profile.')
                 ]),
                 html.Div([
                     html.Div([
@@ -272,7 +386,8 @@ app.layout = html.Div([
                 ]),
                 html.Div([
                     html.Div([
-                        html.P('Risk Level:')
+                        html.P(['Assessment Level: ',html.I(className="fas fa-info-circle fa-lg", id="target-RiskLevel1",style={'font-size':'15px'})]),
+                        dbc.Tooltip("High level assessment provides risk analysis of climate-infrastructure interaction at a general level. Medium level assessment goes into detail about infrastructure components.", target="target-RiskLevel1"),
                     ],style={'margin-bottom':'-1rem'}),
                     html.Div([
                         drop_risklevel_sunburstRisk1
@@ -280,21 +395,23 @@ app.layout = html.Div([
                 ]),
                 html.Div([
                     html.Div([
-                       html.P('Time Horizon:')
+                        html.P(['Time Horizon: ',html.I(className="fas fa-info-circle fa-lg", id="target-TimeHorizon1",style={'font-size':'15px'})]),
+                        dbc.Tooltip("Current (Baseline): 1980-2020 \n Short Term: 2010-2040 \n Medium Term: 2040-2070 \n Long Term: 2070-2100 ",target="target-TimeHorizon1"),
                     ], style={'margin-bottom': '-1rem'}),
                     html.Div([
                         drop_timehorizon_sunburstRisk1
                         ])
                 ]),
                 html.Div([
-                    dcc.Graph(id='Risk_sunburst1')
+                    dcc.Loading(dcc.Graph(id='Risk_sunburst1'),color='#4B9072',type="circle")
                 ])
             ],className='box',style={'width':'49%','margin-right': '0rem','margin-left': '0rem','margin-bottom': '1rem','margin-top': '1rem','padding-right':'15px','padding-left':'15px', 'padding-top':'15px', 'padding-bottom':'15px','backgroundColor':'#111111','border-radius': '15px','background-color': '#F2F2F2'}),
             html.Div([
                 html.Div([
                     html.H3('Risk Analysis 2'),
                     html.Hr(),
-                    html.P('Choose study, location, risk level and time horizon to see the risk profile')
+                    html.P('This section allows you to view specific interactions between infrastructure and climate parameters that were assessed in studies selected above.'),
+                    html.P('Choose study, location, risk level and time horizon to see the risk profile.')
                 ]),
                 html.Div([
                     html.Div([
@@ -314,7 +431,8 @@ app.layout = html.Div([
                 ]),
                 html.Div([
                     html.Div([
-                        html.P('Risk Level:')
+                        html.P(['Assessment Level: ',html.I(className="fas fa-info-circle fa-lg", id="target-RiskLevel2",style={'font-size':'15px'})]),
+                        dbc.Tooltip("High level assessment provides risk analysis of climate-infrastructure interaction at a general level. Medium level assessment goes into detail about infrastructure components.",target="target-RiskLevel2"),
                     ], style={'margin-bottom': '-1rem'}),
                     html.Div([
                         drop_risklevel_sunburstRisk2
@@ -322,60 +440,71 @@ app.layout = html.Div([
                 ]),
                 html.Div([
                     html.Div([
-                        html.P('Time Horizon:')
+                        html.P(['Time Horizon: ',html.I(className="fas fa-info-circle fa-lg", id="target-TimeHorizon2",style={'font-size':'15px'})]),
+                        dbc.Tooltip("Current (Baseline): 1980-2020 \n Short Term: 2010-2040 \n Medium Term: 2040-2070 \n Long Term: 2070-2100 ",target="target-TimeHorizon2"),
                     ], style={'margin-bottom': '-1rem'}),
                     html.Div([
                         drop_timehorizon_sunburstRisk2
                     ])
                 ]),
                 html.Div([
-                    dcc.Graph(id='Risk_sunburst2')
+                    dcc.Loading(dcc.Graph(id='Risk_sunburst2'),color='#4B9072',type="circle")
                 ])
             ],className='box',style={'width':'49%','margin-right': '0rem','margin-left': '1rem','margin-bottom': '1rem','margin-top': '1rem','padding-right':'15px','padding-left':'15px', 'padding-top':'15px', 'padding-bottom':'15px','backgroundColor':'#111111','border-radius': '15px','background-color': '#F2F2F2'})
         ],className='row'),
         html.Div([
             html.Div([
                 html.H3('Recommendations'),
-                html.Hr()
+                html.Hr(),
+                html.P('This section provides summaries of recommendations provided in studies selected in the Infrastructure, Location and Study box')
             ]),
             html.Div(id='Recom_statement')
         ],className='box',style={'margin-right': '-0.5rem','margin-left': '-0.8rem','margin-bottom': '1rem','margin-top': '1rem','padding-right':'15px','padding-left':'15px', 'padding-top':'15px', 'padding-bottom':'15px','backgroundColor':'#111111','border-radius': '15px','background-color': '#F2F2F2'})
 
-    ],className='main',style={"margin-left": "22rem","margin-right": "2rem"}),
+    ],className='main',style={"margin-left": "26rem","margin-right": "2rem"}),
     ])
 ])
 
 #-----------------------------------------------------------------------------------------------------------------------
-@app.callback(
-    [Output('InfraClass_Description','children'),
-     Output('fig_sunburst_InfraClass','figure')],
-    [Input("drop_InfraClass_single", "value")]
+@app.callback(Output('opt_InfraClass_comp','options'),
+              [Input('drop_InfraClass_single','value')]
 )
-def InfraClassification(opt_infra):
+def InfraClassification_Component(opt_infra):
 
     InfraClassification_df = pd.DataFrame(list(InfraClassification_db.find()))
-    InfraClassification_df.replace(to_replace="NAN", value=np.nan, inplace=True)
-    title = "SunBurst Plot Infrastructure Classification"
+    opt_components = InfraClassification_df[InfraClassification_df['Infrastructure Layer 1']==opt_infra]['Infrastructure Layer 2'].unique().tolist()
+    opt_components = [dict(label=val, value=val) for val in opt_components]
 
-    # Infrastructure classification sunburst plot
-    sb = px.sunburst(InfraClassification_df, path=['Infrastructure', 'Infrastructure Component 1', 'Infrastructure Component 2'],custom_data=['Infrastructure', 'Infrastructure Component 1'])
-    sb.update_layout(margin={'l': 0, 'r': 0, 'b': 0, 't': 0},paper_bgcolor='rgba(0,0,0,0)') # , width=1000, height=1000
-    sb.update_traces(hovertemplate='<b>Infrastructure Type: %{customdata[0]} <br> Label: %{label}',branchvalues='total', selector=dict(type='sunburst'))
-    sb.update_traces(insidetextorientation='radial', selector=dict(type='sunburst'))
+    return opt_components
 
-    # Description
+@app.callback([Output('DescripTab','children'),
+               Output('StudiesTab','children')],
+              [Input('drop_InfraClass_single','value'),
+               Input('opt_InfraClass_comp','value')]
+
+)
+def InfraClassification_DescriptionStudy(opt_infra,opt_infra_comp):
+
+    RiskProfile_df = pd.DataFrame(list(RiskProfile_db.find()))
     InfraClassification_df = pd.DataFrame(list(InfraClassification_db.find()))
-    descrip_statement = ''
-    infra_desc_study = InfraClassification_df[InfraClassification_df['Infrastructure']==opt_infra]
-    for i_infra_comp1 in infra_desc_study['Infrastructure Component 1'].unique().tolist():
-        statement_ = ''
-        for i_infra_descrip in infra_desc_study[infra_desc_study['Infrastructure Component 1']==i_infra_comp1]['Description']:
-            if not i_infra_descrip == 'NAN':
-                statement_ += '''* {} \n'''.format(i_infra_descrip)
-        descrip_statement += '''###### {} \n'''.format(i_infra_comp1) + statement_
+    InfraClassification_df.replace(to_replace="NAN", value='N/A', inplace=True)
+    comp_df = InfraClassification_df[(InfraClassification_df['Infrastructure Layer 1']==opt_infra) & (InfraClassification_df['Infrastructure Layer 2']==opt_infra_comp)]
 
-    return html.Div([dcc.Markdown(descrip_statement)]),sb
+    Statement_descrip = ''
+    for i_comp,i_descrip in zip(comp_df['Components'],comp_df['Description']):
+        if not i_comp == "N/A":
+            Statement_descrip += '''\n**{}:** '''.format(i_comp)
+            Statement_descrip += '''{}\n'''.format(i_descrip)
+        else:
+            Statement_descrip += '''\n**{}:** '''.format(opt_infra_comp)
+            Statement_descrip += '''{}\n'''.format(i_descrip)
 
+    Studies_infra = RiskProfile_df[RiskProfile_df['Infrastructure']==opt_infra]['Study'].unique().tolist()
+    Statement_study = ''
+    for i in Studies_infra:
+        Statement_study += '''\n{}\n'''.format(i)
+
+    return html.Div([dcc.Markdown(Statement_descrip)],style={'margin-right':'25px'}), html.Div([dcc.Markdown(Statement_study)],style={'margin-right':'25px',"overflow": "auto","height": "200px"})
 
 
 @app.callback([Output('table_Overview','figure'),
@@ -387,16 +516,19 @@ def Overview_Team_Table(opt_study):
     # Overview Table
     StudiesOverview_df = pd.DataFrame(list(StudiesOverview_db.find()))
     StudiesOverview_df = StudiesOverview_df.drop(columns=['_id'])
+    StudiesOverview_df = StudiesOverview_df.rename(columns={'Infrastructure':'Infrastructure*'})
+    StudiesOverview_df = StudiesOverview_df.rename(columns={'Site Visit':'Site Visit**'})
+
     table_Overview = go.Figure(data=[go.Table(
-        columnwidth=[400, 200, 250, 200, 120, 300, 100],
+        columnwidth=[400, 200, 250, 200, 120, 250, 120],
         header=dict(values=list(StudiesOverview_df.columns),
                     fill_color='grey',
                     line_color='darkslategray',
                     align=['center', 'center', 'center', 'center', 'center', 'center', 'center'],
                     font=dict(color='white', size=12)),
-        cells=dict(values=[StudiesOverview_df.Title, StudiesOverview_df['Consultant Company'], StudiesOverview_df['Client'],
+        cells=dict(values=[StudiesOverview_df.Title, StudiesOverview_df['Consulting Company'], StudiesOverview_df['Client'],
                            StudiesOverview_df.Location, StudiesOverview_df.Year,
-                           StudiesOverview_df['Infrastructure'], StudiesOverview_df['Site Visit']],
+                           StudiesOverview_df['Infrastructure*'], StudiesOverview_df['Site Visit**']],
                    fill_color='white',
                    align=['left', 'center', 'center', 'center', 'center', 'center', 'center'],
                    line_color='darkslategray'))
@@ -405,6 +537,7 @@ def Overview_Team_Table(opt_study):
 
     # Project Team
     ProjectTeam_df = pd.DataFrame(list(ProjectTeam_db.find()))
+    ProjectTeam_df.replace(to_replace="NAN", value='N/A', inplace=True)
     ProjectTeam_opt = ProjectTeam_df.loc[ProjectTeam_df.Study == opt_study]
     ProjectTeam_opt = ProjectTeam_opt.drop(columns=['Study'])
     ProjectTeam_opt = ProjectTeam_opt.drop(columns=['_id'])
@@ -425,8 +558,7 @@ def Overview_Team_Table(opt_study):
 
     return table_Overview,table_ProjectTeam
 
-@app.callback([Output('drop_province','options'),
-               Output('drop_province','value')],
+@app.callback(Output('opt_province','options'),
               [Input('drop_InfraClass_multi','value')]
 )
 def Select_Infrastructure_Province(opt_infra_multi):
@@ -442,15 +574,21 @@ def Select_Infrastructure_Province(opt_infra_multi):
     opt_provinces = RiskProfile_df[RiskProfile_df['Infrastructure'].isin(opt_infra_multi_list)]['Province'].unique().tolist()
     opt_provinces = [dict(label=val, value=val) for val in opt_provinces]
 
-    return opt_provinces,opt_provinces[0]['value']
+    return opt_provinces
+
+@app.callback(Output('opt_province','value'),
+              [Input('opt_province','options')]
+)
+def Select_Infrastructure_Province_initial(opt_infra_province):
+    return opt_infra_province[0]['value']
 
 
-@app.callback([Output('opt_infra_province_study','options'),
-               Output('opt_infra_province_study','value')],
+@app.callback(Output('opt_infra_province_study','options'),
               [Input('drop_InfraClass_multi','value'),
-               Input('drop_province','value')]
+               Input('opt_province','value')]
 )
 def Select_Study(opt_infra_multi,opt_province_multi):
+
     RiskProfile_df = pd.DataFrame(list(RiskProfile_db.find()))
 
     # Extract study with the given infrastructures and provinces
@@ -469,15 +607,20 @@ def Select_Study(opt_infra_multi,opt_province_multi):
     opt_infra_province_study_list = provinces_df[provinces_df['Province'].isin(opt_province_multi_list)]['Study'].unique().tolist()
     opt_infra_province_study = [dict(label=val, value=val) for val in opt_infra_province_study_list]
 
-    return opt_infra_province_study,opt_infra_province_study[0]['value']
+    return opt_infra_province_study
 
+@app.callback(Output('opt_infra_province_study','value'),
+              [Input('opt_infra_province_study','options')]
+)
+def Select_Study_init(opt_infra_province_study):
+    return opt_infra_province_study[0]['value']
 
-@app.callback([Output('opt_study_threshold','options'),
-               Output('opt_study_threshold','value')],
+@app.callback(Output('opt_study_threshold','options'),
               [Input('drop_InfraClass_multi','value'),
-               Input('drop_province','value')]
+               Input('opt_province','value')]
 )
 def Select_Study_Threshold(opt_infra_multi,opt_province_multi):
+
     RiskProfile_df = pd.DataFrame(list(RiskProfile_db.find()))
 
     # Extract study with the given infrastructures and provinces
@@ -496,14 +639,20 @@ def Select_Study_Threshold(opt_infra_multi,opt_province_multi):
     opt_infra_province_study_list = provinces_df[provinces_df['Province'].isin(opt_province_multi_list)]['Study'].unique().tolist()
     opt_infra_province_study = [dict(label=val, value=val) for val in opt_infra_province_study_list]
 
-    return opt_infra_province_study,opt_infra_province_study[0]['value']
+    return opt_infra_province_study
+
+@app.callback(Output('opt_study_threshold','value'),
+              [Input('opt_study_threshold','options')]
+)
+def Select_Study_Threshold_init(opt_study_threshold):
+    return opt_study_threshold[0]['value']
+
 
 
 @app.callback(Output('Threshold_statement','children'),
               [Input('opt_study_threshold','value')]
 )
 def Threshold_Description(opt_study_thres):
-
     Threshold_statement_list = ClimateData_df[ClimateData_df['Study']==opt_study_thres]['Threshold'].values.tolist()[0].split('&&')
     Statement_out = ''
     for Thr_st in Threshold_statement_list:
@@ -513,7 +662,8 @@ def Threshold_Description(opt_study_thres):
     return html.Div([dcc.Markdown(Statement_out)])
 
 
-@app.callback(Output('NetworkPlot','elements'),
+@app.callback([Output('NetworkPlot','elements'),
+               Output('NetworkPlot','stylesheet')],
               [Input('opt_infra_province_study','value'),
                Input('drop_InfraClass_multi','value')]
 )
@@ -530,26 +680,36 @@ def NetworkPlot(opt_infra_province_study,drop_InfraClass_multi):
     else:
         drop_InfraClass_multi_list = [drop_InfraClass_multi]
 
+    color_list = ["#" + ''.join([random.choice('0123456789ABCDEF') for j in range(6)])for i in range(100)]
+
     ClimateParam_list = []
     for i_study in opt_infra_province_study_list:
         list_infras = RiskProfile_df['Infrastructure'][RiskProfile_df['Study'] == i_study].unique().tolist()
         list_infras_study = list(set(list_infras).intersection(set(drop_InfraClass_multi_list)))
         for i_infra in list_infras_study:
             list_infras_study_clim = ClimateDataInfras_df['ClimateParam'][(ClimateDataInfras_df[i_infra] == 'Yes') & (ClimateDataInfras_df['Study'] == i_study)].unique().tolist()
-
             ClimateParam_list += list_infras_study_clim
     ClimateParam_list = list(set(ClimateParam_list))
 
     ClimateParam_nodes = []
     for i_elm in ClimateParam_list:
-        ClimateParam_nodes.append({'data':{'id':i_elm,'label':i_elm}})
+        id_ = i_elm+'id'
+        ClimateParam_nodes.append({'data':{'id':id_,'ClimStud':i_elm}})
 
     Infras_nodes = []
+    i_count = 0
+    color_Infras = [{'selector': 'node','style': {'label': 'data(ClimStud)'}}]
     for i_study in opt_infra_province_study_list:
         list_infras = RiskProfile_df['Infrastructure'][RiskProfile_df['Study'] == i_study].unique().tolist()
         list_infras_study = list(set(list_infras).intersection(set(drop_InfraClass_multi_list)))
         for i_infras_study in list_infras_study:
-            Infras_nodes.append({'data':{'id':i_study+i_infras_study, 'label':i_study+i_infras_study}})
+            id_ = i_study+i_infras_study+'id'
+            ClimStud_ = i_study+':'+i_infras_study
+            Infras_nodes.append({'data':{'id':id_, 'ClimStud':ClimStud_}})
+            color_code = color_list[i_count]
+            color_Infras.append({'selector':'[ClimStud *= '+'"'+ClimStud_+'"'+']','style':{'background-color': color_code,'shape': 'rectangle'}})
+            i_count += 1
+
 
     edges = []
     for i_study in opt_infra_province_study_list:
@@ -558,11 +718,13 @@ def NetworkPlot(opt_infra_province_study,drop_InfraClass_multi):
         for i_infra in list_infras_study:
             list_infras_study_clim = ClimateDataInfras_df['ClimateParam'][(ClimateDataInfras_df[i_infra] == 'Yes') & (ClimateDataInfras_df['Study'] == i_study)].unique().tolist()
             for mm in list_infras_study_clim:
-                edges.append({'data':{'source':i_study+i_infra,'target':mm}})
+                source_ = i_study+i_infra+'id'
+                target_ = mm+'id'
+                edges.append({'data':{'source':source_,'target':target_}})
 
     my_elements = Infras_nodes + ClimateParam_nodes + edges
 
-    return my_elements
+    return my_elements,color_Infras
 
 
 @app.callback([Output('opt_study_sunburstRisk1','options'),
@@ -692,13 +854,13 @@ def Recommendation_Statement(opt_infra_province_study):
         opt_infra_province_study_list = opt_infra_province_study
     else:
         opt_infra_province_study_list = [opt_infra_province_study]
-
+    Recommendation_df.replace(to_replace="NAN", value='N/A', inplace=True)
     df_st = Recommendation_df[Recommendation_df['Study'].isin(opt_infra_province_study_list)]
 
     Statement_out = ''
     for i_study in df_st['Study'].unique().tolist():
         Infras = df_st['Infrastructure'][df_st['Study']==i_study].unique().tolist()
-        Statement_out += '''## {} \n'''.format(i_study)
+        Statement_out += '''#### {} \n'''.format(i_study)
         for i_infras in Infras:
             Statement_out += '''\n** {} :**\n'''.format(i_infras)
             Recoms = df_st['Recommendation'][(df_st['Study']==i_study) & (df_st['Infrastructure']==i_infras)].tolist()
@@ -707,5 +869,7 @@ def Recommendation_Statement(opt_infra_province_study):
 
     return html.Div([dcc.Markdown(Statement_out)])
 
+
 if __name__ == '__main__':
     app.run_server(debug=True, port=3000)
+
