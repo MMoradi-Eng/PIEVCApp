@@ -118,7 +118,7 @@ sidebar = html.Div(
         html.H1("PIEVC Report Analysis Utility", className="display-4"), # UPDATE
         html.Hr(),
         # UPDATE
-        html.Label(["This utility allows users to explore findings for all PIEVC assessment reports submitted to the PIEVC Program from January 2016 to August 2021. The Utility was designed to increase accessibility of findings in PIEVC Protocol assessment reports available of ",dcc.Link('www.pievc.ca',href='https://pievc.ca')]),
+        html.Label(["This utility allows users to explore findings for all PIEVC assessment reports submitted to the PIEVC Program from January 2016 to August 2021. The Utility was designed to increase accessibility of findings in PIEVC Protocol assessment reports available at ",dcc.Link('www.pievc.ca',href='https://pievc.ca')]),
         html.Img(src=app.get_asset_url('Logo.png'),style={'margin-left':'50px'}),
 
         html.Div([
@@ -135,7 +135,7 @@ sidebar = html.Div(
                                 ),
                         dcc.Tab(label='How to Cite',
                                 children=[
-                                    html.Label('How to cite: Moradi, M., & Binns, A. 2021. PIEVC Report Analysis Utility v1. Toronto/Ottawa: PIEVC Program',style={'font-size': '12px'}),
+                                    html.Label('How to cite: Moradi, M., Binns, A., Sandink, D., Lapp, D., 2021. PIEVC Report Analysis Utility v1. Toronto/Ottawa: PIEVC Program',style={'font-size': '12px'}),
                                 ],style=tab_style_sidebar,selected_style=tab_selected_style_sidebar
                                 )
                 ],style={'height': '30px'}
@@ -792,11 +792,11 @@ def RiskProf_Plot(opt_study_sunburstRisk1,opt_location_sunburstRisk1,opt_risklev
 
     def RiskScoreValueCalculator(var):
         if var == 'High':
-            score = 10
+            score = 12
         elif var == 'Med' or var == 'Mod-Low' or var == 'Mod-High':
-            score = 5
+            score = 7
         elif var == 'Low':
-            score = 0
+            score = 2
         else:
             score = 0
         return score
@@ -818,8 +818,8 @@ def RiskProf_Plot(opt_study_sunburstRisk1,opt_location_sunburstRisk1,opt_risklev
     else:
         path = ['Infrastructure', 'Infrastructure Component 1', 'Climate Parameter']
 
-    sb1 = px.sunburst(df_sb_col1, path=path, color='Score1', color_continuous_scale='hot_r', range_color=(0, 10),custom_data=[Risk_timehorizon1, 'Infrastructure', 'Score1'])
-    sb1.update_coloraxes(colorbar=dict(tickmode="array", tickvals=[0, 5, 10], ticktext=['Low', 'Moderate', 'High']))
+    sb1 = px.sunburst(df_sb_col1, path=path, color='Score1', color_continuous_scale=[[0,'white'],[0.167,'green'],[0.583,'yellow'],[1,'red']], range_color=(0, 12),custom_data=[Risk_timehorizon1, 'Infrastructure', 'Score1'])
+    sb1.update_coloraxes(colorbar=dict(tickmode="array", tickvals=[0,2, 7, 12], ticktext=['N/A','Low', 'Moderate', 'High']))
     sb1.update_layout(coloraxis_colorbar_title='Risk')
     sb1.update_layout(margin={'l': 0, 'r': 0, 'b': 0, 't': 0})
     sb1.update_traces(hovertemplate='<b>Infrastructure Type: %{customdata[1]} <br> Label: %{label}',branchvalues='total', selector=dict(type='sunburst'))
@@ -836,8 +836,8 @@ def RiskProf_Plot(opt_study_sunburstRisk1,opt_location_sunburstRisk1,opt_risklev
     else:
         path = ['Infrastructure', 'Infrastructure Component 1', 'Climate Parameter']
 
-    sb2 = px.sunburst(df_sb_col2, path=path, color='Score2', color_continuous_scale='hot_r', range_color=(0, 10),custom_data=[Risk_timehorizon2, 'Infrastructure', 'Score2'])
-    sb2.update_coloraxes(colorbar=dict(tickmode="array", tickvals=[0, 5, 10], ticktext=['Low', 'Moderate', 'High']))
+    sb2 = px.sunburst(df_sb_col2, path=path, color='Score2', color_continuous_scale=[[0,'white'],[0.167,'green'],[0.583,'yellow'],[1,'red']], range_color=(0, 12),custom_data=[Risk_timehorizon2, 'Infrastructure', 'Score2'])
+    sb2.update_coloraxes(colorbar=dict(tickmode="array", tickvals=[0,2, 7, 12], ticktext=['N/A','Low', 'Moderate', 'High']))
     sb2.update_layout(coloraxis_colorbar_title='Risk')
     sb2.update_layout(margin={'l': 0, 'r': 0, 'b': 0, 't': 0})
     sb2.update_traces(hovertemplate='<b>Infrastructure Type: %{customdata[1]} <br> Label: %{label}',branchvalues='total', selector=dict(type='sunburst'))
@@ -872,4 +872,3 @@ def Recommendation_Statement(opt_infra_province_study):
 
 if __name__ == '__main__':
     app.run_server(debug=True, port=3000)
-
