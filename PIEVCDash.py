@@ -16,7 +16,7 @@ import random
 #-----------------------------------------------------------------------------------------------------------------------
 # Import Data
 client = MongoClient("mongodb+srv://moradim:UofGPIEVC@cluster0.ok7am.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
-DataBase = client["test"]
+DataBase = client["test_temp"]
 ## Infrastructure Classification
 InfraClassification_db = DataBase.InfraClassification
 ## Project Team
