@@ -25,7 +25,6 @@ ProjectTeam_db = DataBase.ProjectTeam
 StudiesOverview_db = DataBase.StudiesOverview
 ## Risk Profile
 RiskProfile_db = DataBase.RiskProfile
-# RiskProfile_df = pd.DataFrame(list(RiskProfile_db.find()))
 ## ClimateDataInfras
 ClimateDataInfras_db = DataBase.ClimateDataInfras
 ClimateDataInfras_df = pd.DataFrame(list(ClimateDataInfras_db.find()))
@@ -57,7 +56,7 @@ InfraClassification_df = pd.DataFrame(list(InfraClassification_db.find()))
 InfraClassification_df_sb = copy.copy(InfraClassification_df)
 InfraClassification_df_sb.replace(to_replace="NAN", value=np.nan, inplace=True)
 sb = px.sunburst(InfraClassification_df_sb, path=['Infrastructure Layer 1', 'Infrastructure Layer 2', 'Components'],custom_data=['Infrastructure Layer 1', 'Infrastructure Layer 2'])
-sb.update_layout(margin={'l': 0, 'r': 0, 'b': 0, 't': 0},paper_bgcolor='rgba(0,0,0,0)') # , width=1000, height=1000
+sb.update_layout(margin={'l': 0, 'r': 0, 'b': 0, 't': 0},paper_bgcolor='rgba(0,0,0,0)')
 sb.update_traces(hovertemplate='<b>Infrastructure Type: %{customdata[0]} <br> Label: %{label}',branchvalues='total', selector=dict(type='sunburst'))
 sb.update_traces(insidetextorientation='radial', selector=dict(type='sunburst'))
 
@@ -66,11 +65,6 @@ FONT_AWESOME = "https://use.fontawesome.com/releases/v5.10.2/css/all.css"
 #-----------------------------------------------------------------------------------------------------------------------
 # Start App
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP,FONT_AWESOME])
-
-auth = dash_auth.BasicAuth(
-    app,
-    {'UofGPIEVC': 'Xj#%:(3:fYfRp(Mz'}
- )
 
 #-----------------------------------------------------------------------------------------------------------------------
 # App Style
@@ -115,17 +109,16 @@ tab_selected_style_sidebar = {
 
 sidebar = html.Div(
     [
-        html.H1("PIEVC Report Analysis Utility", className="display-4"), # UPDATE
+        html.H1("PIEVC Report Analysis Utility", className="display-4"),
+        html.P('BETA',style={"margin-left": "280px",'color': 'red',"font-family":"Trebuchet MS"}),
         html.Hr(),
-        # UPDATE
         html.Label(["This utility allows users to explore findings for all PIEVC assessment reports submitted to the PIEVC Program from January 2016 to August 2021. The Utility was designed to increase accessibility of findings in PIEVC Protocol assessment reports available at ",dcc.Link('www.pievc.ca',href='https://pievc.ca')]),
         html.Img(src=app.get_asset_url('Logo.png'),style={'margin-left':'50px'}),
-
         html.Div([
                 dcc.Tabs(children=[
                         dcc.Tab(label='Author',
                                 children=[
-                                    html.Label('The Utility was created by Mohsen Moradi, under the guidance of Prof. Andrew Binns, of the University of Guelph’s School of Engineering, and was funded by the Institute for Catastrophic Loss Reduction',style={'font-size': '12px'}),
+                                    html.Label('The Utility was created by Mohsen Moradi, under the guidance of Prof. Andrew Binns, of the University of Guelph’s School of Engineering, and was funded by the Institute for Catastrophic Loss Reduction.',style={'font-size': '12px'}),
                                 ],style=tab_style_sidebar,selected_style=tab_selected_style_sidebar
                                 ),
                         dcc.Tab(label='Contact Us',
@@ -188,7 +181,6 @@ tab_selected_style = {
 # App Layout
 app.layout = html.Div([
     sidebar,
-
     html.Div([
         html.Div([
         # <Box 1>: Infrastructure classification sunburst & Description
@@ -298,9 +290,10 @@ app.layout = html.Div([
         html.Div([
             html.Div([
                 html.Div([
-                    html.H3("Infrastructure, Location, and Study:"),
+                    html.H3("Infrastructure, Location, and Study:",id="BoxInfrastructureLocationStudy"),
                     html.Hr(),
-                    html.P('The results from PIEVC reports can be compared and explored in the "Threshold", "Climate Parameters", and "Risk Analysis" sections. For these investigations, please choose infrastructure, location, and study.')
+                    html.P(['The results from PIEVC reports can be compared and explored in the', html.Q(html.A("Threshold",href="#BoxThreshold")), ', ',html.Q(html.A("Climate Parameters",href="#BoxClimateParameters"))
+                            , "and, ",html.Q(html.A("Risk Analysis",href="#BoxRiskAnalysis")),' sections. For these investigations, please choose infrastructure, location, and study.'])
                 ]),
                 html.Div([
                     html.Div([
@@ -333,7 +326,7 @@ app.layout = html.Div([
             # <Box >: Threshold
             html.Div([
                 html.Div([
-                    html.H3('Threshold'),
+                    html.H3('Threshold',id="BoxThreshold"),
                     html.Hr(),
                     html.P('Thresholds allow study authors to determine whether or not infrastructure is expected to affected by change in specific climate parameters. This section will allow you to identify how thresholds were determined for the selected studies.'),
                     html.P(['Choose study to see the sources used to calculate climate threshold. ',html.I(className="fas fa-info-circle fa-lg", id="target-threshold",style={'font-size':'15px'})]),
@@ -348,9 +341,10 @@ app.layout = html.Div([
         # <Box >: Network Plot
         html.Div([
             html.Div([
-                html.H3('Climate Parameters'),
+                html.H3('Climate Parameters',id="BoxClimateParameters"),
                 html.Hr(style={'width':'30'}),
-                html.P(['This chart allows you to identify parameters that were included in studies selected in the ``Infrastructure, Location and Study'' box (above). Select multiple studies to view shared parameters. ',
+                html.P(['This chart allows you to identify parameters that were included in studies selected in the ',html.Q(html.A("Infrastructure, Location and Study",href="#BoxInfrastructureLocationStudy")),
+                        ' section. Select multiple studies to view shared parameters. ',
                         html.I(className="fas fa-info-circle fa-lg", id="target-ClimateParam",style={'font-size':'15px'})]),
                 dbc.Tooltip("Drag the circles to get a better view of studies and their parameters ", target="target-ClimateParam"),
             ]),
@@ -359,11 +353,30 @@ app.layout = html.Div([
 
             ),
         ],className='box',style={'margin-right': '0rem','margin-left': '-0.9rem','margin-bottom': '1rem','margin-top': '1rem','padding-right':'15px','padding-left':'15px', 'padding-top':'15px', 'padding-bottom':'15px','backgroundColor':'#111111','border-radius': '15px','background-color': '#F2F2F2'}),
+        # <Box> Scatter Risk plot
+        html.Div([
+            html.Div([
+                html.H3('Risk Analysis Overview'),
+                html.Hr(style={'width':'30'}),
+                html.P(['This section provides summaries of risks identified by the studies that consider the selected infrastructure in the ',
+                        html.Q(html.A('Infrastructure, Location, and Study',href='#BoxInfrastructureLocationStudy'))," section. ",
+                        html.I(className="fas fa-info-circle fa-lg", id="target-RiskAnalysisOverview",style={'font-size':'15px'})]),
+                dbc.Tooltip("Hover over the circles to know more", target="target-RiskAnalysisOverview"),
+            ]),
+            html.Div(
+                dcc.Loading(dcc.Graph(id='ScatterRiskPlot'),color='#4B9072',type="circle")
+            ),
+            html.Div([
+                dcc.Markdown('***** **Other**: Fire, Lightning, Pest and Diseases, UV Exposure, Air pollution, Solar radiation',style={'font-size':'14px','margin-top':'15px'}),
+                dcc.Markdown('****** **Composite**: Permafrost, Flooding, Drought, Ice accumulation, Fog, Storms, Freshet',style={'font-size': '14px', 'margin-top': '-10px'})
+
+            ])
+        ],className='box',style={'margin-right': '0rem','margin-left': '-0.9rem','margin-bottom': '1rem','margin-top': '1rem','padding-right':'15px','padding-left':'15px', 'padding-top':'15px', 'padding-bottom':'15px','backgroundColor':'#111111','border-radius': '15px','background-color': '#F2F2F2'}),
         # <Box > Risk Profile
         html.Div([
             html.Div([
                 html.Div([
-                    html.H3('Risk Analysis 1'),
+                    html.H3('Risk Analysis 1',id="BoxRiskAnalysis"),
                     html.Hr(),
                     html.P('This section allows you to view specific interactions between infrastructure and climate parameters that were assessed in studies selected above.'),
                     html.P('Choose study, location, risk level and time horizon to see the risk profile.')
@@ -456,7 +469,7 @@ app.layout = html.Div([
             html.Div([
                 html.H3('Recommendations'),
                 html.Hr(),
-                html.P('This section provides summaries of recommendations provided in studies selected in the Infrastructure, Location and Study box')
+                html.P(['This section provides summaries of recommendations provided in studies selected in the ', html.Q(html.A('Infrastructure, Location, and Study',href='#BoxInfrastructureLocationStudy'))," section."])
             ]),
             html.Div(id='Recom_statement')
         ],className='box',style={'margin-right': '-0.5rem','margin-left': '-0.8rem','margin-bottom': '1rem','margin-top': '1rem','padding-right':'15px','padding-left':'15px', 'padding-top':'15px', 'padding-bottom':'15px','backgroundColor':'#111111','border-radius': '15px','background-color': '#F2F2F2'})
@@ -505,7 +518,6 @@ def InfraClassification_DescriptionStudy(opt_infra,opt_infra_comp):
         Statement_study += '''\n{}\n'''.format(i)
 
     return html.Div([dcc.Markdown(Statement_descrip)],style={'margin-right':'25px'}), html.Div([dcc.Markdown(Statement_study)],style={'margin-right':'25px',"overflow": "auto","height": "200px"})
-
 
 @app.callback([Output('table_Overview','figure'),
                Output('table_ProjectTeam','figure')],
@@ -582,7 +594,6 @@ def Select_Infrastructure_Province(opt_infra_multi):
 def Select_Infrastructure_Province_initial(opt_infra_province):
     return opt_infra_province[0]['value']
 
-
 @app.callback(Output('opt_infra_province_study','options'),
               [Input('drop_InfraClass_multi','value'),
                Input('opt_province','value')]
@@ -647,8 +658,6 @@ def Select_Study_Threshold(opt_infra_multi,opt_province_multi):
 def Select_Study_Threshold_init(opt_study_threshold):
     return opt_study_threshold[0]['value']
 
-
-
 @app.callback(Output('Threshold_statement','children'),
               [Input('opt_study_threshold','value')]
 )
@@ -681,13 +690,13 @@ def NetworkPlot(opt_infra_province_study,drop_InfraClass_multi):
         drop_InfraClass_multi_list = [drop_InfraClass_multi]
 
     color_list = ["#" + ''.join([random.choice('0123456789ABCDEF') for j in range(6)])for i in range(100)]
-
     ClimateParam_list = []
     for i_study in opt_infra_province_study_list:
         list_infras = RiskProfile_df['Infrastructure'][RiskProfile_df['Study'] == i_study].unique().tolist()
         list_infras_study = list(set(list_infras).intersection(set(drop_InfraClass_multi_list)))
         for i_infra in list_infras_study:
             list_infras_study_clim = ClimateDataInfras_df['ClimateParam'][(ClimateDataInfras_df[i_infra] == 'Yes') & (ClimateDataInfras_df['Study'] == i_study)].unique().tolist()
+
             ClimateParam_list += list_infras_study_clim
     ClimateParam_list = list(set(ClimateParam_list))
 
@@ -725,6 +734,234 @@ def NetworkPlot(opt_infra_province_study,drop_InfraClass_multi):
     my_elements = Infras_nodes + ClimateParam_nodes + edges
 
     return my_elements,color_Infras
+
+@app.callback(Output('ScatterRiskPlot','figure'),
+              [Input('drop_InfraClass_multi','value')]
+)
+def ScatterPlot(drop_InfraClass_multi):
+
+    def RiskScoreValueCalculator(var):
+        if var == 'High':
+            score = 12
+        elif var == 'Med' or var == 'Mod-Low' or var == 'Mod-High':
+            score = 7
+        elif var == 'Low':
+            score = 2
+        else:
+            score = 0
+        return score
+
+    def DotCoord(n_dots,up,left):
+        n_row = n_dots//5
+        reminder = n_dots%5
+        x_coord = []
+        y_coord = []
+        x_spc = 0.3
+        y_spc = 0.05
+        for i in range(n_row):
+            yloc = up - y_spc*i
+            x_coord += [left,left+x_spc,left+x_spc+x_spc,left+x_spc+x_spc+x_spc,left+x_spc+x_spc+x_spc+x_spc]
+            y_coord += [yloc,yloc,yloc,yloc,yloc]
+
+        if reminder == 1:
+            x_coord += [left]
+            y_coord += [up - y_spc*n_row]
+        if reminder == 2:
+            x_coord += [left,left+x_spc]
+            y_coord += [up - y_spc*n_row,up - y_spc*n_row]
+        if reminder == 3:
+            x_coord += [left, left+x_spc, left+x_spc+x_spc]
+            y_coord += [up - y_spc * n_row, up - y_spc * n_row, up - y_spc * n_row]
+        if reminder == 4:
+            x_coord += [left, left+x_spc, left+x_spc+x_spc,left+x_spc+x_spc+x_spc]
+            y_coord += [up - y_spc * n_row, up - y_spc * n_row, up - y_spc * n_row,up - y_spc * n_row]
+
+        return x_coord,y_coord
+
+
+    RiskProfile_df = pd.DataFrame(list(RiskProfile_db.find()))
+
+    if isinstance(drop_InfraClass_multi, list):
+        drop_InfraClass_multi_list = drop_InfraClass_multi
+    else:
+        drop_InfraClass_multi_list = [drop_InfraClass_multi]
+
+    LowRisk_point_x = []
+    LowRisk_point_y = []
+    LowRisk_color = []
+    LowRisk_hovertext = []
+    MedRisk_point_x = []
+    MedRisk_point_y = []
+    MedRisk_color = []
+    MedRisk_hovertext = []
+    HighRisk_point_x = []
+    HighRisk_point_y = []
+    HighRisk_color = []
+    HighRisk_hovertext = []
+    ClimateParamGeneral = ['Temperature','Precipitation','Wind','Sea','Composite','Other']
+    y_lb = [i*1 for i in range(len(drop_InfraClass_multi_list)+1)]
+    y_margin = 0.05
+    x_margin = 0.4
+    y_margin_in = 1/6
+    count = 0
+    for i_infras in drop_InfraClass_multi_list:
+        RiskProfile_df['Score_current'] = RiskProfile_df['Risk (Current)'].apply(RiskScoreValueCalculator)
+        RiskProfile_df['Score_short'] = RiskProfile_df['Risk (Short Term)'].apply(RiskScoreValueCalculator)
+        RiskProfile_df['Score_medium'] = RiskProfile_df['Risk (Medium Term)'].apply(RiskScoreValueCalculator)
+        RiskProfile_df['Score_long'] = RiskProfile_df['Risk (Long Term)'].apply(RiskScoreValueCalculator)
+
+        RiskProfile_infra_df = RiskProfile_df[RiskProfile_df['Infrastructure'] == i_infras]
+
+        count_in = 0
+        for i_climparam in ClimateParamGeneral:
+
+            RiskProfile_infra_df_ClimParam = RiskProfile_infra_df[RiskProfile_infra_df['Climate Parameter General'] == i_climparam]
+
+            RiskProfile_infra_df_gb_current_ClimParam = RiskProfile_infra_df_ClimParam.groupby('Study')[['Score_current']].max().reset_index()
+            RiskProfile_infra_df_gb_short_ClimParam = RiskProfile_infra_df_ClimParam.groupby('Study')[['Score_short']].max().reset_index()
+            RiskProfile_infra_df_gb_medium_ClimParam = RiskProfile_infra_df_ClimParam.groupby('Study')[['Score_medium']].max().reset_index()
+            RiskProfile_infra_df_gb_long_ClimParam = RiskProfile_infra_df_ClimParam.groupby('Study')[['Score_long']].max().reset_index()
+
+            RiskCount_current_df = RiskProfile_infra_df_gb_current_ClimParam['Score_current'].value_counts().reset_index().rename(columns={'index': 'RiskScore', 'Score_current': 'Counts'})
+            RiskCount_short_df = RiskProfile_infra_df_gb_short_ClimParam['Score_short'].value_counts().reset_index().rename(columns={'index': 'RiskScore', 'Score_short': 'Counts'})
+            RiskCount_medium_df = RiskProfile_infra_df_gb_medium_ClimParam['Score_medium'].value_counts().reset_index().rename(columns={'index': 'RiskScore', 'Score_medium': 'Counts'})
+            RiskCount_long_df = RiskProfile_infra_df_gb_long_ClimParam['Score_long'].value_counts().reset_index().rename(columns={'index': 'RiskScore', 'Score_long': 'Counts'})
+
+            if 2 in RiskCount_current_df.RiskScore.to_list():
+                n_Low = RiskCount_current_df['Counts'][RiskCount_current_df['RiskScore'] == 2].to_list()[0]
+                LowRisk_point_x += DotCoord(n_Low, y_lb[count + 1] - count_in*y_margin_in - y_margin, x_margin)[0]
+                LowRisk_point_y += DotCoord(n_Low, y_lb[count + 1] - count_in*y_margin_in - y_margin, x_margin)[1]
+                LowRisk_color += ['green' for i in range(n_Low)]
+                LowRisk_hovertext += RiskProfile_infra_df_gb_current_ClimParam['Study'][RiskProfile_infra_df_gb_current_ClimParam['Score_current'] == 2].to_list()
+            if 7 in RiskCount_current_df.RiskScore.to_list():
+                n_Med = RiskCount_current_df['Counts'][RiskCount_current_df['RiskScore'] == 7].to_list()[0]
+                MedRisk_point_x += DotCoord(n_Med, y_lb[count + 1] - count_in*y_margin_in - y_margin, 2 + x_margin)[0]
+                MedRisk_point_y += DotCoord(n_Med, y_lb[count + 1] - count_in*y_margin_in - y_margin, 2 + x_margin)[1]
+                MedRisk_color += ['yellow' for i in range(n_Med)]
+                MedRisk_hovertext += RiskProfile_infra_df_gb_current_ClimParam['Study'][RiskProfile_infra_df_gb_current_ClimParam['Score_current'] == 7].to_list()
+            if 12 in RiskCount_current_df.RiskScore.to_list():
+                n_High = RiskCount_current_df['Counts'][RiskCount_current_df['RiskScore'] == 12].to_list()[0]
+                HighRisk_point_x += DotCoord(n_High, y_lb[count + 1] - count_in*y_margin_in - y_margin, 4 + x_margin)[0]
+                HighRisk_point_y += DotCoord(n_High, y_lb[count + 1] - count_in*y_margin_in - y_margin, 4 + x_margin)[1]
+                HighRisk_color += ['red' for i in range(n_High)]
+                HighRisk_hovertext += RiskProfile_infra_df_gb_current_ClimParam['Study'][RiskProfile_infra_df_gb_current_ClimParam['Score_current'] == 12].to_list()
+
+            if 2 in RiskCount_short_df.RiskScore.to_list():
+                n_Low = RiskCount_short_df['Counts'][RiskCount_short_df['RiskScore'] == 2].to_list()[0]
+                LowRisk_point_x += DotCoord(n_Low, y_lb[count + 1] - count_in*y_margin_in - y_margin, 6 + x_margin)[0]
+                LowRisk_point_y += DotCoord(n_Low, y_lb[count + 1] - count_in*y_margin_in - y_margin, 6 + x_margin)[1]
+                LowRisk_color += ['green' for i in range(n_Low)]
+                LowRisk_hovertext += RiskProfile_infra_df_gb_short_ClimParam['Study'][RiskProfile_infra_df_gb_short_ClimParam['Score_short'] == 2].to_list()
+            if 7 in RiskCount_short_df.RiskScore.to_list():
+                n_Med = RiskCount_short_df['Counts'][RiskCount_short_df['RiskScore'] == 7].to_list()[0]
+                MedRisk_point_x += DotCoord(n_Med, y_lb[count + 1] - count_in*y_margin_in - y_margin, 6 + 2 + x_margin)[0]
+                MedRisk_point_y += DotCoord(n_Med, y_lb[count + 1] - count_in*y_margin_in - y_margin, 6 + 2 + x_margin)[1]
+                MedRisk_color += ['yellow' for i in range(n_Med)]
+                MedRisk_hovertext += RiskProfile_infra_df_gb_short_ClimParam['Study'][RiskProfile_infra_df_gb_short_ClimParam['Score_short'] == 7].to_list()
+            if 12 in RiskCount_short_df.RiskScore.to_list():
+                n_High = RiskCount_short_df['Counts'][RiskCount_short_df['RiskScore'] == 12].to_list()[0]
+                HighRisk_point_x += DotCoord(n_High, y_lb[count + 1] - count_in*y_margin_in - y_margin, 6 + 4 + x_margin)[0]
+                HighRisk_point_y += DotCoord(n_High, y_lb[count + 1] - count_in*y_margin_in - y_margin, 6 + 4 + x_margin)[1]
+                HighRisk_color += ['red' for i in range(n_High)]
+                HighRisk_hovertext += RiskProfile_infra_df_gb_short_ClimParam['Study'][RiskProfile_infra_df_gb_short_ClimParam['Score_short'] == 12].to_list()
+
+            if 2 in RiskCount_medium_df.RiskScore.to_list():
+                n_Low = RiskCount_medium_df['Counts'][RiskCount_medium_df['RiskScore'] == 2].to_list()[0]
+                LowRisk_point_x += DotCoord(n_Low, y_lb[count + 1] - count_in*y_margin_in - y_margin, 12 + x_margin)[0]
+                LowRisk_point_y += DotCoord(n_Low, y_lb[count + 1] - count_in*y_margin_in - y_margin, 12 + x_margin)[1]
+                LowRisk_color += ['green' for i in range(n_Low)]
+                LowRisk_hovertext += RiskProfile_infra_df_gb_medium_ClimParam['Study'][RiskProfile_infra_df_gb_medium_ClimParam['Score_medium'] == 2].to_list()
+            if 7 in RiskCount_medium_df.RiskScore.to_list():
+                n_Med = RiskCount_medium_df['Counts'][RiskCount_medium_df['RiskScore'] == 7].to_list()[0]
+                MedRisk_point_x += DotCoord(n_Med, y_lb[count + 1] - count_in*y_margin_in - y_margin, 12 + 2 + x_margin)[0]
+                MedRisk_point_y += DotCoord(n_Med, y_lb[count + 1] - count_in*y_margin_in - y_margin, 12 + 2 + x_margin)[1]
+                MedRisk_color += ['yellow' for i in range(n_Med)]
+                MedRisk_hovertext += RiskProfile_infra_df_gb_medium_ClimParam['Study'][RiskProfile_infra_df_gb_medium_ClimParam['Score_medium'] == 7].to_list()
+            if 12 in RiskCount_medium_df.RiskScore.to_list():
+                n_High = RiskCount_medium_df['Counts'][RiskCount_medium_df['RiskScore'] == 12].to_list()[0]
+                HighRisk_point_x += DotCoord(n_High, y_lb[count + 1] - count_in*y_margin_in - y_margin, 12 + 4 + x_margin)[0]
+                HighRisk_point_y += DotCoord(n_High, y_lb[count + 1] - count_in*y_margin_in - y_margin, 12 + 4 + x_margin)[1]
+                HighRisk_color += ['red' for i in range(n_High)]
+                HighRisk_hovertext += RiskProfile_infra_df_gb_medium_ClimParam['Study'][RiskProfile_infra_df_gb_medium_ClimParam['Score_medium'] == 12].to_list()
+
+            if 2 in RiskCount_long_df.RiskScore.to_list():
+                n_Low = RiskCount_long_df['Counts'][RiskCount_long_df['RiskScore'] == 2].to_list()[0]
+                LowRisk_point_x += DotCoord(n_Low, y_lb[count + 1] - count_in*y_margin_in - y_margin, 18 + x_margin)[0]
+                LowRisk_point_y += DotCoord(n_Low, y_lb[count + 1] - count_in*y_margin_in - y_margin, 18 + x_margin)[1]
+                LowRisk_color += ['green' for i in range(n_Low)]
+                LowRisk_hovertext += RiskProfile_infra_df_gb_long_ClimParam['Study'][RiskProfile_infra_df_gb_long_ClimParam['Score_long'] == 2].to_list()
+            if 7 in RiskCount_long_df.RiskScore.to_list():
+                n_Med = RiskCount_long_df['Counts'][RiskCount_long_df['RiskScore'] == 7].to_list()[0]
+                MedRisk_point_x += DotCoord(n_Med, y_lb[count + 1] - count_in*y_margin_in - y_margin, 18 + 2 + x_margin)[0]
+                MedRisk_point_y += DotCoord(n_Med, y_lb[count + 1] - count_in*y_margin_in - y_margin, 18 + 2 + x_margin)[1]
+                MedRisk_color += ['yellow' for i in range(n_Med)]
+                MedRisk_hovertext += RiskProfile_infra_df_gb_long_ClimParam['Study'][RiskProfile_infra_df_gb_long_ClimParam['Score_long'] == 7].to_list()
+            if 12 in RiskCount_long_df.RiskScore.to_list():
+                n_High = RiskCount_long_df['Counts'][RiskCount_long_df['RiskScore'] == 12].to_list()[0]
+                HighRisk_point_x += DotCoord(n_High, y_lb[count + 1] - count_in*y_margin_in - y_margin, 18 + 4 + x_margin)[0]
+                HighRisk_point_y += DotCoord(n_High, y_lb[count + 1] - count_in*y_margin_in - y_margin, 18 + 4 + x_margin)[1]
+                HighRisk_color += ['red' for i in range(n_High)]
+                HighRisk_hovertext += RiskProfile_infra_df_gb_long_ClimParam['Study'][RiskProfile_infra_df_gb_long_ClimParam['Score_long'] == 12].to_list()
+
+            count_in += 1
+        count += 1
+
+    Risk_point_x = LowRisk_point_x + MedRisk_point_x + HighRisk_point_x
+    Risk_point_y = LowRisk_point_y + MedRisk_point_y + HighRisk_point_y
+    Risk_color = LowRisk_color + MedRisk_color + HighRisk_color
+    Risk_hovertext = LowRisk_hovertext + MedRisk_hovertext + HighRisk_hovertext
+
+
+    fig = go.Figure(data=[go.Scatter(
+        x=Risk_point_x,
+        y=Risk_point_y,
+        mode='markers',
+        marker=dict(color=Risk_color, line_width=2),
+        hovertext=Risk_hovertext, hoverinfo='text'
+    ),go.Scatter(yaxis='y2')])
+
+    fig.update_yaxes(range=[0, y_lb[-1]], showgrid=False)
+    fig.update_xaxes(range=[0, 24], showgrid=False)
+    fig.update_traces(marker_size=7)
+    fig.add_vrect(x0=0, x1=2, fillcolor="green", opacity=0.25, line_width=0)
+    fig.add_vrect(x0=2, x1=4, fillcolor="yellow", opacity=0.25, line_width=0)
+    fig.add_vrect(x0=4, x1=6, fillcolor="red", opacity=0.25, line_width=0)
+    fig.add_vrect(x0=6, x1=8, fillcolor="green", opacity=0.25, line_width=0)
+    fig.add_vrect(x0=8, x1=10, fillcolor="yellow", opacity=0.25, line_width=0)
+    fig.add_vrect(x0=10, x1=12, fillcolor="red", opacity=0.25, line_width=0)
+    fig.add_vrect(x0=12, x1=14, fillcolor="green", opacity=0.25, line_width=0)
+    fig.add_vrect(x0=14, x1=16, fillcolor="yellow", opacity=0.25, line_width=0)
+    fig.add_vrect(x0=16, x1=18, fillcolor="red", opacity=0.25, line_width=0)
+    fig.add_vrect(x0=18, x1=20, fillcolor="green", opacity=0.25, line_width=0)
+    fig.add_vrect(x0=20, x1=22, fillcolor="yellow", opacity=0.25, line_width=0)
+    fig.add_vrect(x0=22, x1=24, fillcolor="red", opacity=0.25, line_width=0)
+    fig.update_layout(hoverlabel=dict(bgcolor="white", font_size=16))
+    fig.add_annotation(x=3, y=y_lb[-1]/2, text='Current', showarrow=False, font_size=50, opacity=0.25,textangle=-90)
+    fig.add_vline(x=6, line_width=3, line_color="black")
+    fig.add_annotation(x=9, y=y_lb[-1]/2, text='Short<br>Term', showarrow=False, font_size=50, opacity=0.25,textangle=-90)
+    fig.add_vline(x=12, line_width=3, line_color="black")
+    fig.add_annotation(x=15, y=y_lb[-1]/2, text='Medium<br>Term', showarrow=False, font_size=50, opacity=0.25,textangle=-90)
+    fig.add_vline(x=18, line_width=3, line_color="black")
+    fig.add_annotation(x=21, y=y_lb[-1]/2, text='Long<br>Term', showarrow=False, font_size=50, opacity=0.25,textangle=-90)
+    tickval = [0.5+i for i in range(len(drop_InfraClass_multi_list))]
+    tickval2 = []
+    ticktext2 = []
+    ClimateParamGeneral_tick = ['Temperature', 'Precipitation', 'Wind', 'Sea', 'Composite**', 'Other*']
+    for i in range(len(drop_InfraClass_multi_list)):
+        tickval2 += [1/12+i,1/12+1/6+i,1/12+2/6+i,1/12+3/6+i,1/12+4/6+i,1/12+5/6+i]
+        ticktext2 += ClimateParamGeneral_tick
+    fig.update_layout(yaxis=dict(tickmode='array', tickvals=tickval, ticktext=drop_InfraClass_multi_list,tickangle=-90),
+                      yaxis2=dict(tickmode='array',range=[0, y_lb[-1]],tickvals=tickval2, ticktext=ticktext2,overlaying="y",side="right"))
+    fig.update_layout(xaxis=dict(tickmode='array', tickvals=[1,3,5,7,9,11,13,15,17,19,21,23], ticktext=['Low','Medium','High','Low','Medium','High','Low','Medium','High','Low','Medium','High']))
+    fig.update_layout(margin=dict(l=0,r=0,b=25,t=0),paper_bgcolor="#F2F2F2")
+    for i in range(len(drop_InfraClass_multi_list)):
+        fig.add_hline(y=i+1, line_width=3, line_color="black",opacity=0.4)
+        for j in range(len(ClimateParamGeneral)):
+            fig.add_hline(y=(i + 1) - j/len(ClimateParamGeneral), line_width=3, line_color="black", opacity=0.2,line_dash="dash")
+
+    return fig
+
+
 
 
 @app.callback([Output('opt_study_sunburstRisk1','options'),
@@ -810,7 +1047,6 @@ def RiskProf_Plot(opt_study_sunburstRisk1,opt_location_sunburstRisk1,opt_risklev
     RiskProfile_df = pd.DataFrame(list(RiskProfile_db.find()))
     Risk_timehorizon1 = 'Risk '+'('+opt_timehorizon_sunburstRisk1+')'
     RiskProfile_df['Score1'] = RiskProfile_df[Risk_timehorizon1].apply(RiskScoreValueCalculator)
-    # print(opt_location_sunburstRisk1)
     df_sb_col1 = RiskProfile_df[(RiskProfile_df['Study'] == opt_study_sunburstRisk1) & (RiskProfile_df['Location'] == opt_location_sunburstRisk1)]
     df_sb_col1 = df_sb_col1[df_sb_col1['Infrastructure'].isin(drop_InfraClass_multi_list)]
     if opt_risklevel_sunburstRisk1 == 'High':
