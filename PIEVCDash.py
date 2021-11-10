@@ -114,6 +114,7 @@ sidebar = html.Div(
         html.Hr(),
         html.Label(["This utility allows users to explore findings for all PIEVC assessment reports submitted to the PIEVC Program from January 2016 to August 2021. The Utility was designed to increase accessibility of findings in PIEVC Protocol assessment reports available at ",dcc.Link('www.pievc.ca',href='https://pievc.ca')]),
         html.Img(src=app.get_asset_url('Logo.png'),style={'margin-left':'50px'}),
+        html.P(['If you have any questions or comments about this utility, please contact ',html.A('pievc@iclr.org', href='mailto:pievc@iclr.org'), ' and include ', html.Q('PIEVC Utility'),' as the subject.'], style={'font-size': '12px', 'color': 'red', "font-family": "Trebuchet MS"}),
         html.Div([
                 dcc.Tabs(children=[
                         dcc.Tab(label='Author',
@@ -123,7 +124,7 @@ sidebar = html.Div(
                                 ),
                         dcc.Tab(label='Contact Us',
                                 children=[
-                                    html.Label('If you have any questions or comments about this utility, please contact pievc@iclr.org and include "PIEVC Utility" as the subject',style={'font-size': '12px'}),
+                                    html.Label(['If you have any questions or comments about this utility, please contact ', html.A('pievc@iclr.org',href='mailto:pievc@iclr.org'), ' and include ', html.Q('PIEVC Utility'), ' as the subject.'],style={'font-size': '12px'}),
                                 ],style=tab_style_sidebar,selected_style=tab_selected_style_sidebar
                                 ),
                         dcc.Tab(label='How to Cite',
