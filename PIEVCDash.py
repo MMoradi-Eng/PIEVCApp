@@ -65,7 +65,7 @@ FONT_AWESOME = "https://use.fontawesome.com/releases/v5.10.2/css/all.css"
 #-----------------------------------------------------------------------------------------------------------------------
 # Start App
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP,FONT_AWESOME])
-
+app.title = 'PIEVCAnalysis'
 #-----------------------------------------------------------------------------------------------------------------------
 # App Style
 # styling the sidebar
